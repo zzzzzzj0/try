@@ -72,7 +72,7 @@ int** IsRight(Mat image, int x, int y, int width, int height)
  */
 
 
-Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1UpperBind )
+Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1UpperBind, vector<Point>& Dset)
 {
 	Point pToGrowing;                       //待生长点位置
 	int pGrowValue = 0;                             //待生长点灰度值
@@ -112,6 +112,7 @@ Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1U
 					{
 						growImage.at<uchar>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
 						growPtVector.push_back(pToGrowing);                 //将下一个生长点压入栈中
+						Dset.push_back(pToGrowing);//保存被生长的点
 					}
 				}
 			}
@@ -120,10 +121,33 @@ Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1U
 	return growImage.clone();
 }
 
+/*
+Imtest
+测试保存好的点是否正确
+根据保存好的vector
+转换成图
+*/
+void Imtest(vector<Point> Dset)
+{
+	int x = 0;
+	int y = 0;
+	Mat testIm = Mat::zeros(800, 800, CV_8UC1);
+	for (int i = 0; i < Dset.size(); i++)
+	{
+		x = Dset[i].x;
+		y = Dset[i].y;
+		testIm.at<uchar>(y, x) = 255;
+	}
+	imwrite("D: / test.jpg", testIm);
+	imshow("ceshi", testIm);
+}
+
 int main()
 {
 	Mat image = imread("D:/3.bmp", 1);//原图
 	Mat image1;
+	vector<Point> DotSet;
+
 	if (!image.data)
 	{
 		return -1;
@@ -166,14 +190,14 @@ int main()
 		printf("\n\n");
 	}
 	*/
-	
+
 	Point start;
 	for (int x = 0; x < height; ++x)//遍历
 	{
 		for (int y = 0; y < width; ++y)
 		{
 			int index = x * width + y;//(x,y)点的index
-			if (int(image2.data[index]) < 2 )//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
+			if (int(image2.data[index]) < 2)//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
 			{
 				continue;
 			}
@@ -181,14 +205,15 @@ int main()
 			{
 				int m = y;
 				int n = x;
-				start.x = m ;
-				start.y = n ;
-				Mat result = RegionGrow(image2, start, 127, 2, 255);
+				start.x = m;
+				start.y = n;
+				Mat result = RegionGrow(image2, start, 127, 2, 255, DotSet);
 				imwrite("D:/try.jpg", result);
+				Imtest(DotSet);
 			}
 		}
 	}
-	
+
 	/*
 	//自己设起始点，成功
 	Point start;
@@ -231,167 +256,167 @@ int main()
 	imshow("二值化后", image2);
 	*/
 
-		
-		
 
 
-		/*
-		Mat grad_x;
-		Mat grad_y;
-		Mat dst_before;
-		Mat dst;
 
 
-		//Sobel(image2, grad_x, CV_16S, 1, 0, 3);
-		//Sobel(image2, grad_y, CV_16S, 0, 1, 3);
-		Mat result;//去噪后
-		medianBlur(image2, result, 3);
-		Sobel(result, grad_x, CV_16S, 1, 0, 3);
-		Sobel(result, grad_y, CV_16S, 0, 1, 3);
-		convertScaleAbs(grad_x, grad_x);
-		convertScaleAbs(grad_y, grad_y);
-		addWeighted(grad_x, 0.5, grad_y, 0.5, 0, dst_before);
-		//imshow("边缘提取x后", grad_x);
-		//imshow("边缘提取y后", grad_y);
-		imshow("边缘提取后", dst_before);
-		//输出
-		/*
-		for (int i = 9; i < 23; ++i)
+	/*
+	Mat grad_x;
+	Mat grad_y;
+	Mat dst_before;
+	Mat dst;
+
+
+	//Sobel(image2, grad_x, CV_16S, 1, 0, 3);
+	//Sobel(image2, grad_y, CV_16S, 0, 1, 3);
+	Mat result;//去噪后
+	medianBlur(image2, result, 3);
+	Sobel(result, grad_x, CV_16S, 1, 0, 3);
+	Sobel(result, grad_y, CV_16S, 0, 1, 3);
+	convertScaleAbs(grad_x, grad_x);
+	convertScaleAbs(grad_y, grad_y);
+	addWeighted(grad_x, 0.5, grad_y, 0.5, 0, dst_before);
+	//imshow("边缘提取x后", grad_x);
+	//imshow("边缘提取y后", grad_y);
+	imshow("边缘提取后", dst_before);
+	//输出
+	/*
+	for (int i = 9; i < 23; ++i)
+	{
+		for (int j = 0; j < width; ++j)
 		{
-			for (int j = 0; j < width; ++j)
-			{
-					int index = i * width + j;
-					printf("%d  ", int(dst_before.data[index]));
-			}
-			printf("\n\n");
+				int index = i * width + j;
+				printf("%d  ", int(dst_before.data[index]));
 		}
-		*/
+		printf("\n\n");
+	}
+	*/
 
-		/*
-		dst = dst_before.clone();//dst给分割用
-		int** location;
-		int flag=1;
+	/*
+	dst = dst_before.clone();//dst给分割用
+	int** location;
+	int flag=1;
 
-		//Mat each_sub_image[100];//最后得到的结果
-		Mat each_sub_image= cv::Mat::zeros(height, width, CV_32F);
-		Mat sub_image;//临时存放
-		int image_num = -1;
-		int turn2black[200] = { 0 };
-		int black_num=0;
-		for (int x = 0; x < height; ++x)//遍历
+	//Mat each_sub_image[100];//最后得到的结果
+	Mat each_sub_image= cv::Mat::zeros(height, width, CV_32F);
+	Mat sub_image;//临时存放
+	int image_num = -1;
+	int turn2black[200] = { 0 };
+	int black_num=0;
+	for (int x = 0; x < height; ++x)//遍历
+	{
+		for (int y = 0; y < width; ++y)
 		{
-			for (int y = 0; y < width; ++y)
+			int index = x * width + y;//(x,y)点的index
+			//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
+			if (int(dst.data[index]) == 0)//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
 			{
-				int index = x * width + y;//(x,y)点的index
-				//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
-				if (int(dst.data[index]) == 0)//(x,y)为黑色则跳过，且设置flag为0，代表开始搜寻下一个图片了
+				flag = 0;
+				continue;
+			}
+			else//（x,y)为前景
+			{
+				if (flag == 0)//flag为0代表是搜寻到下一张图片了
 				{
-					flag = 0;
-					continue;
-				}
-				else//（x,y)为前景
-				{
-					if (flag == 0)//flag为0代表是搜寻到下一张图片了
+					//black_num = 0;
+					//从找到第二个图形开始，把上一张图片拷贝到第image_num个图像的mat里
+					if (image_num != -1)
 					{
-						//black_num = 0;
-						//从找到第二个图形开始，把上一张图片拷贝到第image_num个图像的mat里
-						if (image_num != -1)
-						{
-							//each_sub_image[image_num] = sub_image.clone();
-							each_sub_image = sub_image.clone();
-							imwrite("D:/SubImage2.jpg", each_sub_image);
-						}
-						image_num++;
+						//each_sub_image[image_num] = sub_image.clone();
+						each_sub_image = sub_image.clone();
+						imwrite("D:/SubImage2.jpg", each_sub_image);
 					}
-					//创建临时mat放子图案并标记点是否访问过
-					sub_image = cv::Mat::zeros(height, width, CV_32F);//全黑
-					Mat flag_image = cv::Mat::zeros(height, width, CV_32F);//全为0
-					//（m,n)为当前访问的点的坐标
-					int m = x;
-					int n = y;
-					//location返回（m,n)领域内的点的相对差距
+					image_num++;
+				}
+				//创建临时mat放子图案并标记点是否访问过
+				sub_image = cv::Mat::zeros(height, width, CV_32F);//全黑
+				Mat flag_image = cv::Mat::zeros(height, width, CV_32F);//全为0
+				//（m,n)为当前访问的点的坐标
+				int m = x;
+				int n = y;
+				//location返回（m,n)领域内的点的相对差距
+				location = IsRight(dst, m, n, width, height);
+				int index_sub = m * width + n;
+				while (location[0][0]!=0)//这个点在闭合轮廓上
+				{
+					//将sub_image里(m,n)对应的点标记为白色,将flag_image里(m,n)对应的点标记为1
+					sub_image.data[index_sub] = 255;
+					flag_image.data[index_sub] = 1;
+					//index存到turn2black里，一个图形遍历结束之后把对应点全部变成黑色
+					turn2black[black_num] = index_sub;
+					black_num++;
+					int num_max = location[0][0];//共有几个可选点
+					int i = 0;
+					int j = 0;
+					int num = 0;
+					//判断下个点在flag_image里的对应值是否为1，为1的话换一组i，j
+					while (flag_image.data[(m + i) * width + n + j] == 1 && num<=num_max)
+					{
+						//选择一个下一个i、j
+						num++;
+						if (num <= num_max)
+						{
+							i = location[0][num];
+							j = location[1][num];
+						}
+					}
+					if (num > num_max)
+						break;
+					//更新m，n为其邻接点
+					m = m + i;
+					n = n + j;
 					location = IsRight(dst, m, n, width, height);
-					int index_sub = m * width + n;
-					while (location[0][0]!=0)//这个点在闭合轮廓上
-					{
-						//将sub_image里(m,n)对应的点标记为白色,将flag_image里(m,n)对应的点标记为1
-						sub_image.data[index_sub] = 255;
-						flag_image.data[index_sub] = 1;
-						//index存到turn2black里，一个图形遍历结束之后把对应点全部变成黑色
-						turn2black[black_num] = index_sub;
-						black_num++;
-						int num_max = location[0][0];//共有几个可选点
-						int i = 0;
-						int j = 0;
-						int num = 0;
-						//判断下个点在flag_image里的对应值是否为1，为1的话换一组i，j
-						while (flag_image.data[(m + i) * width + n + j] == 1 && num<=num_max)
-						{
-							//选择一个下一个i、j
-							num++;
-							if (num <= num_max)
-							{
-								i = location[0][num];
-								j = location[1][num];
-							}
-						}
-						if (num > num_max)
-							break;
-						//更新m，n为其邻接点
-						m = m + i;
-						n = n + j;
-						location = IsRight(dst, m, n, width, height);
-						index_sub = m * width + n;
-					}
-					//把上述遍历过的点在dst里置为背景
-					for (int q = 0; q < black_num + 1; q++)
-					{
-						int black_index;
-						black_index = turn2black[q];
-						dst.data[black_index] = 0;
-						//把turn2black清零
-						turn2black[q] = 0;
-					}
-					black_num = 0;
-					//imwrite("D:/SubImage2.jpg", each_sub_image);
-					flag = 1;
+					index_sub = m * width + n;
 				}
+				//把上述遍历过的点在dst里置为背景
+				for (int q = 0; q < black_num + 1; q++)
+				{
+					int black_index;
+					black_index = turn2black[q];
+					dst.data[black_index] = 0;
+					//把turn2black清零
+					turn2black[q] = 0;
+				}
+				black_num = 0;
+				//imwrite("D:/SubImage2.jpg", each_sub_image);
+				flag = 1;
 			}
 		}
-		*/
-		//中值滤波 异常
-		/*
-		Mat img;//用于输出自己写的中值滤波
-		image2.copyTo(img);
-		///Mat result;//用于输出opencv自带的中值滤波
-		for (int i = 140; i < image2.rows - 130; i++)
+	}
+	*/
+	//中值滤波 异常
+	/*
+	Mat img;//用于输出自己写的中值滤波
+	image2.copyTo(img);
+	///Mat result;//用于输出opencv自带的中值滤波
+	for (int i = 140; i < image2.rows - 130; i++)
+	{
+		uchar* preptr = image2.ptr(i - 1);//(i,j)是要改变的像素坐标点
+		uchar* ptr = image2.ptr(i);
+		uchar* nextptr = image2.ptr(i + 1);
+		uchar* imgptr = img.ptr(i);
+		for (int j = 140; j < image2.cols - 130; j++)
 		{
-			uchar* preptr = image2.ptr(i - 1);//(i,j)是要改变的像素坐标点
-			uchar* ptr = image2.ptr(i);
-			uchar* nextptr = image2.ptr(i + 1);
-			uchar* imgptr = img.ptr(i);
-			for (int j = 140; j < image2.cols - 130; j++)
-			{
-				grayv[0] = (preptr[j - 1]);
-				grayv[1] = (preptr[j]);
-				grayv[2] = (preptr[j + 1]);
-				grayv[3] = (ptr[j - 1]);
-				grayv[4] = (ptr[j]);
-				grayv[5] = (ptr[j + 1]);
-				grayv[6] = (nextptr[j - 1]);
-				grayv[7] = (nextptr[j]);
-				grayv[8] = (nextptr[j + 1]);
-				sort(grayv.begin(), grayv.end());
-				imgptr[j] = int(grayv[4]);
-			}
-
+			grayv[0] = (preptr[j - 1]);
+			grayv[1] = (preptr[j]);
+			grayv[2] = (preptr[j + 1]);
+			grayv[3] = (ptr[j - 1]);
+			grayv[4] = (ptr[j]);
+			grayv[5] = (ptr[j + 1]);
+			grayv[6] = (nextptr[j - 1]);
+			grayv[7] = (nextptr[j]);
+			grayv[8] = (nextptr[j + 1]);
+			sort(grayv.begin(), grayv.end());
+			imgptr[j] = int(grayv[4]);
 		}
-		//medianBlur(image2, result, 3);
-		imshow("原图", image2);
-		imshow("中值滤波后", img);
-		//imshow("opencv自带滤波", result);
-		*/
-	
-		cv::waitKey(0);
+
+	}
+	//medianBlur(image2, result, 3);
+	imshow("原图", image2);
+	imshow("中值滤波后", img);
+	//imshow("opencv自带滤波", result);
+	*/
+
+	cv::waitKey(0);
 	return 0;
 }
