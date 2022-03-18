@@ -72,7 +72,7 @@ int** IsRight(Mat image, int x, int y, int width, int height)
  */
 
 
-Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1UpperBind, vector<Point>& Dset)
+Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1UpperBind, vector<Point>* pDset)
 {
 	Point pToGrowing;                       //待生长点位置
 	int pGrowValue = 0;                             //待生长点灰度值
@@ -112,7 +112,7 @@ Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1U
 					{
 						growImage.at<uchar>(pToGrowing.y, pToGrowing.x) = 255;      //标记为白色
 						growPtVector.push_back(pToGrowing);                 //将下一个生长点压入栈中
-						Dset.push_back(pToGrowing);//保存被生长的点
+						(*pDset).push_back(pToGrowing);//保存被生长的点
 					}
 				}
 			}
@@ -127,18 +127,18 @@ Imtest
 根据保存好的vector
 转换成图
 */
-void Imtest(vector<Point> Dset)
+void Imtest(vector<Point> Dset,int width,int height)
 {
 	int x = 0;
 	int y = 0;
-	Mat testIm = Mat::zeros(800, 800, CV_8UC1);
+	Mat testIm = Mat::zeros(width, height, CV_8UC1);
 	for (int i = 0; i < Dset.size(); i++)
 	{
 		x = Dset[i].x;
 		y = Dset[i].y;
 		testIm.at<uchar>(y, x) = 255;
 	}
-	imwrite("D: / test.jpg", testIm);
+	imwrite("D:/test_vector.jpg", testIm);
 	imshow("ceshi", testIm);
 	cv::waitKey(0);
 }
@@ -208,9 +208,9 @@ int main()
 				int n = x;
 				start.x = m;
 				start.y = n;
-				Mat result = RegionGrow(image2, start, 127, 2, 255, DotSet);
+				Mat result = RegionGrow(image2, start, 127, 2, 255, &(DotSet));
 				imwrite("D:/try.jpg", result);
-				Imtest(DotSet);
+				Imtest(DotSet,width,height);
 			}
 		}
 	}
