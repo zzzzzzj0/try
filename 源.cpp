@@ -140,6 +140,7 @@ void Imtest(vector<Point> Dset)
 	}
 	imwrite("D: / test.jpg", testIm);
 	imshow("ceshi", testIm);
+	cv::waitKey(0);
 }
 
 int main()
