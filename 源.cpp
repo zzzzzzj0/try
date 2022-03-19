@@ -2,11 +2,20 @@
 #include<opencv2/opencv.hpp>
 #include <iostream>
 #include <algorithm>
-#include<time.h>
+#include <time.h>
+#include <numeric>
 using namespace cv;
 using namespace std;
 
-
+struct workpiece//工件结构
+{
+	Point center;//重心
+	int x_min = 0;
+	int x_max = 0;
+	int y_min = 0;
+	int y_max = 0;
+	int area = 0;//面积
+} ;
 
 /**
  * @brief 区域生长算法，输入图像应为灰度图像
@@ -91,20 +100,26 @@ void Imchange(vector<Point> Dset,Mat* p_image,int width,int height)
 	cv::waitKey(0);
 }
 
+bool cmpy_x(cv::Point const& a, cv::Point const& b)
+{
+	return a.x < b.x;
+}
+
 int main()
 {
-	Mat image = imread("D:/3.bmp", 1);//原图
+	Mat image = imread("D:/集合无粘连.bmp", 1);//原图
 	Mat image1;
 	//vector<Point> DotSet;
 	vector<vector<Point>> after_cut;
 	after_cut.resize(20);
+	//struct workpiece gj[20];//最多20个工件信息的结构数组
 
 	if (!image.data)
 	{
 		return -1;
 	}
 	//image3为image裁剪后，row=130,col=110
-	Mat image3(image, Rect(100, 150, 800, 800));
+	Mat image3(image, Rect(1, 1, 570, 570));
 	//image2为image3转灰度得到的图像，不知道里面存的值的大概范围
 	cvtColor(image3, image1, CV_BGR2GRAY);
 	//cvtColor(image, image1, CV_BGR2GRAY);
@@ -129,6 +144,16 @@ int main()
 		}
 	}
 	imwrite("D:/前景为啥色.jpg", image2);
+	Mat grad_x;
+	Mat grad_y;
+	Mat dst;
+	Mat result = image2.clone();
+	Sobel(result, grad_x, CV_16S, 1, 0, 3);
+	Sobel(result, grad_y, CV_16S, 0, 1, 3);
+	convertScaleAbs(grad_x, grad_x);
+	convertScaleAbs(grad_y, grad_y);
+	addWeighted(grad_x, 0.5, grad_y, 0.5, 0, image2);
+	imwrite("D:/kangkang.jpg", image2);
 	//得到image2为二值化后的图像
 	/*
 	//看输出
@@ -161,8 +186,9 @@ int main()
 				start.x = m;
 				start.y = n;
 				//以当前点区域生长后，point被存到after_cut[cut_num]里
-				//Mat result = RegionGrow(image2, start, 127, 2, 255, &(DotSet));
-				Mat result = RegionGrow(image2, start, 127, 2, 255, &(after_cut[cut_num]));
+				
+				//Mat result = RegionGrow(image2, start, 127, 2, 255, &(after_cut[cut_num]));
+				Mat result = RegionGrow(image2, start, 150, 2, 255, &(after_cut[cut_num]));
 				imwrite("D:/try.jpg", result);
 				//Imchange(DotSet,&image2,width,height);
 				Imchange(after_cut[cut_num], &image2, width, height);
@@ -172,6 +198,7 @@ int main()
 	//存储分割后工件的Mat
 	vector<Mat> after_cut_Mat;
 	after_cut_Mat.resize(20);
+
 	for (int p = 0; p < cut_num+1; p++)
 	{
 		after_cut_Mat[p]= Mat::zeros(width, height, CV_8UC1);
@@ -181,6 +208,10 @@ int main()
 			int b = after_cut[p][i].y;
 			after_cut_Mat[p].at<uchar>(b, a) = 255;
 		}
+		sort(after_cut[p].begin(), after_cut[p].end(),cmpy_x);
+		//gj[p].x_min = after_cut[p][0].x;
+		//gj[p].x_max = after_cut[p][].x;
+		
 		imwrite("D:/gongjian.jpg", after_cut_Mat[p]);//检验是否成功
 	}
 	
@@ -227,10 +258,6 @@ int main()
 	}
 	imshow("二值化后", image2);
 	*/
-
-
-
-
 
 	/*
 	Mat grad_x;
