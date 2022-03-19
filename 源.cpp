@@ -4,9 +4,10 @@
 #include <algorithm>
 #include <time.h>
 #include <numeric>
+#include "yinyong.h"
 using namespace cv;
 using namespace std;
-
+/*
 struct workpiece//工件结构
 {
 	Point center;//重心
@@ -16,7 +17,7 @@ struct workpiece//工件结构
 	int y_max = 0;
 	int area = 0;//面积
 } ;
-
+*/
 /**
  * @brief 区域生长算法，输入图像应为灰度图像
  * @param srcImage 区域生长的源图像
@@ -112,7 +113,7 @@ int main()
 	//vector<Point> DotSet;
 	vector<vector<Point>> after_cut;
 	after_cut.resize(20);
-	//struct workpiece gj[20];//最多20个工件信息的结构数组
+	struct workpiece gj[20];//最多20个工件信息的结构数组
 
 	if (!image.data)
 	{
