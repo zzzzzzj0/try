@@ -7,60 +7,7 @@ using namespace cv;
 using namespace std;
 
 
-/*
-int** IsRight(Mat image, int x, int y, int width, int height)
-{
-	int i, j, k = 0;
-	int index = 0;
-	int** location_this;
-	//location_this为二维数组头
-	location_this = (int**)malloc(2 * sizeof(int*));
-	if (location_this == NULL)
-	{
-		printf("no!");
-		exit(1);
-	}
-	for (int i = 0; i < 2; i++) 
-	{
-		location_this[i] = (int*)malloc(10 * sizeof(int));
-		if (location_this[i] == NULL)
-		{
-			printf("no!");
-			exit(1);
-		}
-	}
-	for (i = -1; i <= 1; i++)
-	{
-		if (x + i < width && x + i >= 0)
-		{
-			for (j = -1; j <= 1; j++)
-			{
-				if (y + j < height && y + j >= 0)
-				{
-					index = (x+i) * width + y+j;
-					if (image.data[index] != 0)
-					{
-						k++;
-						location_this[0][k] = i;//0维记录i
-						location_this[1][k] = j;//1维记录j
-					}
-				}
-			}
-		}
-	}
-	if (k > 2)//以数组头标记是否在闭合轮廓上
-	{
-		location_this[0][0] = k;
-		location_this[1][0] = k;
-	}
-	else
-	{
-		location_this[0][0] = 0;
-		location_this[1][0] = 0;
-	}
-	return location_this;
-}
-*/
+
 /**
  * @brief 区域生长算法，输入图像应为灰度图像
  * @param srcImage 区域生长的源图像
@@ -122,12 +69,11 @@ Mat RegionGrow(Mat srcImage, Point pt, int ch1Thres, int ch1LowerBind , int ch1U
 }
 
 /*
-Imtest
+Imchange
 测试保存好的点是否正确
-根据保存好的vector
-转换成图
+根据保存好的vector转换成图
 */
-void Imtest(vector<Point> Dset,int width,int height)
+void Imchange(vector<Point> Dset,Mat* p_image,int width,int height)
 {
 	int x = 0;
 	int y = 0;
@@ -137,9 +83,11 @@ void Imtest(vector<Point> Dset,int width,int height)
 		x = Dset[i].x;
 		y = Dset[i].y;
 		testIm.at<uchar>(y, x) = 255;
+		(*p_image).at<uchar>(y, x) = 0;
 	}
-	imwrite("D:/test_vector.jpg", testIm);
-	imshow("ceshi", testIm);
+	//imwrite("D:/test_vector.jpg", testIm);
+	//imwrite("D:/after_change.jpg", *(p_image));
+	//imshow("ceshi", testIm);
 	cv::waitKey(0);
 }
 
@@ -147,7 +95,9 @@ int main()
 {
 	Mat image = imread("D:/3.bmp", 1);//原图
 	Mat image1;
-	vector<Point> DotSet;
+	//vector<Point> DotSet;
+	vector<vector<Point>> after_cut;
+	after_cut.resize(20);
 
 	if (!image.data)
 	{
@@ -181,6 +131,7 @@ int main()
 	imwrite("D:/前景为啥色.jpg", image2);
 	//得到image2为二值化后的图像
 	/*
+	//看输出
 	for (int i = 0; i < height; ++i)
 	{
 		for (int j = 0; j < width; ++j)
@@ -191,7 +142,7 @@ int main()
 		printf("\n\n");
 	}
 	*/
-
+	int cut_num=-1;//记录工件个数
 	Point start;
 	for (int x = 0; x < height; ++x)//遍历
 	{
@@ -204,16 +155,36 @@ int main()
 			}
 			else//（x,y)为前景
 			{
+				cut_num++;
 				int m = y;
 				int n = x;
 				start.x = m;
 				start.y = n;
-				Mat result = RegionGrow(image2, start, 127, 2, 255, &(DotSet));
+				//以当前点区域生长后，point被存到after_cut[cut_num]里
+				//Mat result = RegionGrow(image2, start, 127, 2, 255, &(DotSet));
+				Mat result = RegionGrow(image2, start, 127, 2, 255, &(after_cut[cut_num]));
 				imwrite("D:/try.jpg", result);
-				Imtest(DotSet,width,height);
+				//Imchange(DotSet,&image2,width,height);
+				Imchange(after_cut[cut_num], &image2, width, height);
 			}
 		}
 	}
+	//存储分割后工件的Mat
+	vector<Mat> after_cut_Mat;
+	after_cut_Mat.resize(20);
+	for (int p = 0; p < cut_num+1; p++)
+	{
+		after_cut_Mat[p]= Mat::zeros(width, height, CV_8UC1);
+		for (int i = 0; i < after_cut[p].size(); i++)
+		{
+			int a = after_cut[p][i].x;
+			int b = after_cut[p][i].y;
+			after_cut_Mat[p].at<uchar>(b, a) = 255;
+		}
+		imwrite("D:/gongjian.jpg", after_cut_Mat[p]);//检验是否成功
+	}
+	
+
 
 	/*
 	//自己设起始点，成功
