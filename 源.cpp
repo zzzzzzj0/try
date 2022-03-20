@@ -7,17 +7,6 @@
 #include "yinyong.h"
 using namespace cv;
 using namespace std;
-/*
-struct workpiece//工件结构
-{
-	Point center;//重心
-	int x_min = 0;
-	int x_max = 0;
-	int y_min = 0;
-	int y_max = 0;
-	int area = 0;//面积
-} ;
-*/
 /**
  * @brief 区域生长算法，输入图像应为灰度图像
  * @param srcImage 区域生长的源图像
@@ -25,6 +14,7 @@ struct workpiece//工件结构
  * @param ch1Thres 通道的生长限制阈值，临近像素符合±chxThres范围内才能进行生长
  * @param ch1LowerBind 通道的最小值阈值
  * @param ch1UpperBind 通道的最大值阈值，在这个范围外即使临近像素符合±chxThres也不能生长
+ * @param  pDset指向存点集的vector
  * @return 生成的区域图像（二值类型）
  */
 
@@ -106,29 +96,49 @@ bool cmpy_x(cv::Point const& a, cv::Point const& b)
 	return a.x < b.x;
 }
 
+/*
+find_centroid
+计算质心
+*/
+Point find_centroid(vector<Point> edge_point)
+{
+	Point centroid;
+	centroid.x = 0;
+	centroid.y = 0;
+	for (int i=0;i<edge_point.size();i++)
+	{
+		centroid.x += edge_point[i].x;
+		centroid.y += edge_point[i].y;
+	}
+
+	centroid.x = centroid.x / edge_point.size();
+	centroid.y = centroid.y / edge_point.size();
+	return centroid;
+
+}
+
 int main()
 {
 	Mat image = imread("D:/集合无粘连.bmp", 1);//原图
-	Mat image1;
-	//vector<Point> DotSet;
-	vector<vector<Point>> after_cut;
+	vector<vector<Point>> after_cut;//存放各工件边缘点集
 	after_cut.resize(20);
 	struct workpiece gj[20];//最多20个工件信息的结构数组
-
+	int cut_num = -1;//记录工件个数
+	//vector<WorkPiece> All_WorkPiece;
+	//All_WorkPiece.resize(20);
 	if (!image.data)
 	{
 		return -1;
 	}
-	//image3为image裁剪后，row=130,col=110
-	Mat image3(image, Rect(1, 1, 570, 570));
-	//image2为image3转灰度得到的图像，不知道里面存的值的大概范围
-	cvtColor(image3, image1, CV_BGR2GRAY);
-	//cvtColor(image, image1, CV_BGR2GRAY);
-	Mat image2;//去噪后
-	medianBlur(image1, image2, 3);
+	
+	Mat image3(image, Rect(1, 1, 570, 570));//image3为image裁剪后，row=130,col=110
+	Mat image1;
+	cvtColor(image3, image1, CV_BGR2GRAY);//image1为image3转灰度得到的图像
+	Mat image2;
+	medianBlur(image1, image2, 3);//image2为去噪后
 	int width = image2.cols;
 	int height = image2.rows;
-	//二值化
+	//image2为二值化后的图像
 	for (int i = 0; i < height; ++i)
 	{
 		for (int j = 0; j < width; ++j)
@@ -144,7 +154,7 @@ int main()
 			}
 		}
 	}
-	imwrite("D:/前景为啥色.jpg", image2);
+	
 	Mat grad_x;
 	Mat grad_y;
 	Mat dst;
@@ -154,22 +164,10 @@ int main()
 	convertScaleAbs(grad_x, grad_x);
 	convertScaleAbs(grad_y, grad_y);
 	addWeighted(grad_x, 0.5, grad_y, 0.5, 0, image2);
-	imwrite("D:/kangkang.jpg", image2);
-	//得到image2为二值化后的图像
-	/*
-	//看输出
-	for (int i = 0; i < height; ++i)
-	{
-		for (int j = 0; j < width; ++j)
-		{
-			int index = i * width + j;
-			printf("%d  ", int(image2.data[index]));
-		}
-		printf("\n\n");
-	}
-	*/
-	int cut_num=-1;//记录工件个数
-	Point start;
+	imwrite("D:/kangkang.jpg", image2);//image2为边缘提取后的图像
+	
+	
+	Point start;//起始点
 	for (int x = 0; x < height; ++x)//遍历
 	{
 		for (int y = 0; y < width; ++y)
@@ -182,38 +180,33 @@ int main()
 			else//（x,y)为前景
 			{
 				cut_num++;
-				int m = y;
-				int n = x;
-				start.x = m;
-				start.y = n;
+				start.x = y;
+				start.y = x;
 				//以当前点区域生长后，point被存到after_cut[cut_num]里
-				
-				//Mat result = RegionGrow(image2, start, 127, 2, 255, &(after_cut[cut_num]));
-				Mat result = RegionGrow(image2, start, 150, 2, 255, &(after_cut[cut_num]));
+				//Mat result = RegionGrow(image2, start, 127, 2, 255, &(after_cut[cut_num]));//生长实心
+				Mat result = RegionGrow(image2, start, 150, 2, 255, &(after_cut[cut_num]));//生长边缘
+				//Mat result = RegionGrow(image2, start, 150, 2, 255, &(gj[cut_num].edge));//直接存到结构数组里失败
 				imwrite("D:/try.jpg", result);
-				//Imchange(DotSet,&image2,width,height);
 				Imchange(after_cut[cut_num], &image2, width, height);
 			}
 		}
 	}
-	//存储分割后工件的Mat
-	vector<Mat> after_cut_Mat;
-	after_cut_Mat.resize(20);
-
-	for (int p = 0; p < cut_num+1; p++)
+	
+	for (int p = 0; p < cut_num+1; p++)//对所有工件循环
 	{
-		after_cut_Mat[p]= Mat::zeros(width, height, CV_8UC1);
-		for (int i = 0; i < after_cut[p].size(); i++)
+		gj[p].edge_mat= Mat::zeros(width, height, CV_8UC1);
+		gj[p].edge = after_cut[p];//把边缘点集存到结构里
+		for (int i = 0; i < gj[p].edge.size(); i++)//对每个工件的边缘点集循环
 		{
-			int a = after_cut[p][i].x;
-			int b = after_cut[p][i].y;
-			after_cut_Mat[p].at<uchar>(b, a) = 255;
+			int a = gj[p].edge[i].x;
+			int b = gj[p].edge[i].y;
+			gj[p].edge_mat.at<uchar>(b, a) = 255;
 		}
 		sort(after_cut[p].begin(), after_cut[p].end(),cmpy_x);
-		//gj[p].x_min = after_cut[p][0].x;
-		//gj[p].x_max = after_cut[p][].x;
-		
-		imwrite("D:/gongjian.jpg", after_cut_Mat[p]);//检验是否成功
+		//All_WorkPiece[p].centroid = find_centroid(after_cut[p]);//计算质心，存到类里
+		gj[p].centroid = find_centroid(after_cut[p]);//计算质心，存到结构里
+		//gj[p].edge_mat.at<uchar>(gj[p].centroid.y, gj[p].centroid.x) = 255;//检验质心是否正确
+		imwrite("D:/gongjian.jpg", gj[p].edge_mat);
 	}
 	
 
@@ -420,3 +413,15 @@ int main()
 	cv::waitKey(0);
 	return 0;
 }//保护保护
+/*
+	//看输出
+	for (int i = 0; i < height; ++i)
+	{
+		for (int j = 0; j < width; ++j)
+		{
+			int index = i * width + j;
+			printf("%d  ", int(image2.data[index]));
+		}
+		printf("\n\n");
+	}
+	*/
