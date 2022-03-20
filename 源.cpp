@@ -5,19 +5,9 @@
 #include <time.h>
 #include <numeric>
 #include "yinyong.h"
+
 using namespace cv;
 using namespace std;
-/*
-struct workpiece//工件结构
-{
-	Point center;//重心
-	int x_min = 0;
-	int x_max = 0;
-	int y_min = 0;
-	int y_max = 0;
-	int area = 0;//面积
-} ;
-*/
 /**
  * @brief 区域生长算法，输入图像应为灰度图像
  * @param srcImage 区域生长的源图像
@@ -105,6 +95,50 @@ bool cmpy_x(cv::Point const& a, cv::Point const& b)
 {
 	return a.x < b.x;
 }
+/*
+* 找外接矩形的几何参数
+*/
+void rect_Find(struct workpiece* gj,int cut_num)
+{
+	int i = 0;//记录当前找的是第几个工件
+	for (i = 0;i<cut_num; i++)
+	{
+		point_far_near(gj+i);//找该工件到质心最远和最近的点
+
+	}
+}
+
+/*
+* 返回离质心最近的点
+*/
+
+void point_far_near(struct workpiece* Gj)
+{
+	int  maxi,mini;//最远最近点的索引
+	vector<float> dist;
+	int dx, dy;
+	for (int i = 0; i < (*Gj).edge.size(); i++)
+	{
+		dx = (*Gj).edge[i].x - (*Gj).centroid.x;
+		dy = (*Gj).edge[i].y - (*Gj).centroid.y;
+		dist[i] = sqrt(pow(dx, 2) + pow(dy, 2));
+	}
+	std::vector<float>::iterator max = max_element(dist.begin(), dist.end());
+	maxi = std::distance(std::begin(dist), max);//最大值的下标
+	std::vector<float>::iterator min = min_element(dist.begin(), dist.end());
+	mini = std::distance(std::begin(dist), min);//最小值的下标
+	(*Gj).far = (*Gj).edge[maxi];//最远点
+	(*Gj).near = (*Gj).edge[mini];//最近点
+}
+
+
+/*
+* 返回长短轴两个斜率
+*/
+
+/*
+*主函数
+*/
 
 int main()
 {
